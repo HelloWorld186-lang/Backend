@@ -1,1 +1,0 @@
-# This file is no longer needed as configuration is moved to __init__.py

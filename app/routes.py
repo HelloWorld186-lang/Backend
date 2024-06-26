@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
-from app import db
-from app.models import Contact
+from . import db
+from .models import Contact
 
 main = Blueprint('main', __name__)
 
@@ -26,15 +26,14 @@ def create_contact():
         db.session.add(new_contact)
         db.session.commit()
     except Exception as error:
+        db.session.rollback()
         return jsonify({'message': str(error)}), 500
 
     return jsonify({'message': 'User created'}), 201
 
 @main.route('/update/<int:user_id>', methods=['PATCH'])
 def update_contact(user_id):
-    contact = Contact.query.get(user_id)
-    if not contact:
-        return jsonify({'message': 'Contact not found'}), 404
+    contact = Contact.query.get_or_404(user_id)
 
     data = request.json
     contact.first_name = data.get('firstName', contact.first_name)
@@ -42,15 +41,23 @@ def update_contact(user_id):
     contact.email = data.get('email', contact.email)
     contact.mobile_number = data.get('mobile', contact.mobile_number)
 
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception as error:
+        db.session.rollback()
+        return jsonify({'message': str(error)}), 500
+
     return jsonify({'message': 'Contact updated'}), 200
 
 @main.route('/delete/<int:user_id>', methods=['DELETE'])
 def delete_contact(user_id):
-    contact = Contact.query.get(user_id)
-    if not contact:
-        return jsonify({'message': 'User not found'}), 404
+    contact = Contact.query.get_or_404(user_id)
 
-    db.session.delete(contact)
-    db.session.commit()
+    try:
+        db.session.delete(contact)
+        db.session.commit()
+    except Exception as error:
+        db.session.rollback()
+        return jsonify({'message': str(error)}), 500
+
     return jsonify({'message': 'Contact deleted'}), 200
